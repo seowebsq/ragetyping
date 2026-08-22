@@ -1,0 +1,18 @@
+{
+  "name": "ragetyping",
+  "compatibility_date": "2025-08-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "pages_build_output_dir": ".vercel/output/static",
+  "observability": {
+    "enabled": true
+  },
+  "kv_namespaces": [
+    {
+      "binding": "RAGE_KV",
+      "id": "05af4053314244488f201ef305582aa5"
+    }
+  ],
+  "vars": {
+    "ANTHROPIC_MODEL": "claude-haiku-4-5"
+  }
+}

@@ -1,0 +1,256 @@
+:root {
+  --bg: #0a0a0c;
+  --panel: #141417;
+  --edge: #26262c;
+  --ember: #ff5a2c;
+  --ember-soft: #ff8a5b;
+  --text: #f4f1ec;
+  --muted: #8a8a93;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.stage {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 48px 20px 64px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.head {
+  text-align: center;
+}
+
+.logo {
+  font-size: 42px;
+  font-weight: 900;
+  letter-spacing: -2px;
+  margin: 0;
+  background: linear-gradient(90deg, var(--ember), var(--ember-soft));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.logo span {
+  color: var(--text);
+  -webkit-text-fill-color: var(--text);
+  margin-left: 4px;
+}
+
+.tag {
+  color: var(--muted);
+  margin: 10px 0 0;
+  font-size: 15px;
+}
+
+.persona {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.pill {
+  flex: 1;
+  max-width: 260px;
+  padding: 11px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--edge);
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pill:hover {
+  border-color: var(--ember-soft);
+  color: var(--text);
+}
+
+.pill.active {
+  border-color: var(--ember);
+  color: var(--text);
+  background: rgba(255, 90, 44, 0.12);
+}
+
+.editor {
+  border: 1px solid var(--edge);
+  border-radius: 16px;
+  background: var(--panel);
+  overflow: hidden;
+}
+
+.rage {
+  width: 100%;
+  min-height: 200px;
+  resize: vertical;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 19px;
+  line-height: 1.5;
+  padding: 20px;
+  font-family: inherit;
+}
+
+.rage::placeholder {
+  color: #55555e;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-top: 1px solid var(--edge);
+}
+
+.hint {
+  font-size: 13px;
+  color: var(--muted);
+  transition: color 0.2s ease;
+}
+
+.hint.live {
+  color: var(--ember-soft);
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sound {
+  border: 1px solid var(--edge);
+  background: var(--panel);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sound.on {
+  color: var(--ember-soft);
+  border-color: var(--ember-soft);
+}
+
+.share {
+  margin: 4px 0;
+}
+
+.copy {
+  display: inline-block;
+  border: 1px solid var(--ember);
+  color: var(--ember-soft);
+  background: transparent;
+  border-radius: 9px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+
+.copy:hover {
+  background: rgba(255, 90, 44, 0.1);
+}
+
+.burn {
+  border: none;
+  border-radius: 10px;
+  padding: 11px 22px;
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.3px;
+  color: #1a0c06;
+  background: linear-gradient(90deg, var(--ember), var(--ember-soft));
+  cursor: pointer;
+  transition: transform 0.1s ease, opacity 0.2s ease;
+}
+
+.burn:hover {
+  transform: translateY(-1px);
+}
+
+.burn:disabled {
+  opacity: 0.5;
+  cursor: default;
+  transform: none;
+}
+
+.error {
+  color: var(--ember-soft);
+  font-size: 14px;
+  margin: 0;
+  text-align: center;
+}
+
+.receipt {
+  min-height: 120px;
+  border: 1px dashed var(--edge);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.5s ease, transform 0.5s ease, border-color 0.5s ease;
+}
+
+.receipt.show {
+  opacity: 1;
+  transform: translateY(0);
+  border-color: var(--ember);
+  background: rgba(255, 90, 44, 0.06);
+}
+
+.receipt-tag {
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 11px;
+  color: var(--ember-soft);
+  font-weight: 700;
+}
+
+.receipt-line {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+.receipt-fade {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.foot {
+  margin-top: auto;
+  text-align: center;
+  color: #4d4d55;
+  font-size: 12px;
+}
