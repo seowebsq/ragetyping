@@ -1,11 +1,20 @@
 {
+  "$schema": "node_modules/wrangler/config-schema.json",
   "name": "ragetyping",
-  "compatibility_date": "2025-08-01",
+  "account_id": "caf49ad0b12d244494290505b5e8f53e",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2024-12-30",
   "compatibility_flags": ["nodejs_compat"],
-  "pages_build_output_dir": ".vercel/output/static",
-  "observability": {
-    "enabled": true
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
   },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "ragetyping"
+    }
+  ],
   "kv_namespaces": [
     {
       "binding": "RAGE_KV",

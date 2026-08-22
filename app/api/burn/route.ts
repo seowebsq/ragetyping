@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { getOptionalRequestContext } from "@cloudflare/next-on-pages";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 
 export const runtime = "nodejs";
 
@@ -55,7 +55,7 @@ async function kvLimited(kv: any, ip: string): Promise<boolean> {
 async function rateLimited(ip: string): Promise<boolean> {
   let ctx: any = null;
   try {
-    ctx = getOptionalRequestContext();
+    ctx = getCloudflareContext();
   } catch {
     /* not on Cloudflare */
   }
@@ -109,7 +109,10 @@ export async function POST(request: Request) {
   const text = typeof (body as any)?.text === "string" ? (body as any).text : "";
   const persona = isPersona((body as any)?.persona) ? (body as any).persona : "sarcastic";
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const client = new Anthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY,
+    fetch: (url, init) => fetch(url as any, init as any),
+  });
 
   try {
     const message = await client.messages.create({
