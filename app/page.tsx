@@ -9,6 +9,10 @@ type Status = "composing" | "burning" | "empty";
 const IDLE_BURN_MS = 2600;
 const SELF_DESTRUCT_MS = 9000;
 
+// Keystrokes-per-second thresholds per rage level, ported from RageType (MIT):
+// https://github.com/MateiCysec/ragetype
+const RAGE_KPS = [0, 4, 7, 11, 16, 22];
+
 export default function Home() {
   const [text, setText] = useState("");
   const [persona, setPersona] = useState<Persona>("sarcastic");
@@ -23,6 +27,7 @@ export default function Home() {
   const destructTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const burningRef = useRef(false);
   const textRef = useRef("");
+  const keyTimes = useRef<number[]>([]);
   const audioCtx = useRef<AudioContext | null>(null);
 
   const ensureCtx = useCallback((): AudioContext | null => {
@@ -39,17 +44,26 @@ export default function Home() {
     if (!soundOn) return;
     const ctx = ensureCtx();
     if (!ctx) return;
+
+    // ponytail: rage level = keystrokes in the last second, bucketed on RAGE_KPS.
+    const stamp = Date.now();
+    keyTimes.current = keyTimes.current.filter((t) => stamp - t < 1000).concat(stamp);
+    const kps = keyTimes.current.length;
+    const heat = RAGE_KPS.findLastIndex((t) => kps >= t) / (RAGE_KPS.length - 1);
+
     const now = ctx.currentTime;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
+    const peak = 0.035 + heat * 0.075;
+    const decay = 0.06 / (1 + heat);
     osc.type = "triangle";
-    osc.frequency.setValueAtTime(170 + Math.random() * 140, now);
+    osc.frequency.setValueAtTime((170 + Math.random() * 140) * (1 + heat), now);
     gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(0.05, now + 0.004);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.06);
+    gain.gain.exponentialRampToValueAtTime(peak, now + 0.004);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + decay);
     osc.connect(gain).connect(ctx.destination);
     osc.start(now);
-    osc.stop(now + 0.07);
+    osc.stop(now + decay + 0.01);
   }, [soundOn, ensureCtx]);
 
   const playBurn = useCallback(() => {
