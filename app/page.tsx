@@ -9,7 +9,8 @@ type Status = "composing" | "burning" | "empty";
 const IDLE_BURN_MS = 2600;
 const SELF_DESTRUCT_MS = 9000;
 
-// Keystrokes-per-second thresholds per rage level, ported from RageType's curve.
+// Keystrokes-per-second thresholds per rage level, ported from RageType (MIT):
+// https://github.com/MateiCysec/ragetype
 const RAGE_KPS = [0, 4, 7, 11, 16, 22];
 
 export default function Home() {
