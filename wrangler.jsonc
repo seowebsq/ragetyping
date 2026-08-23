@@ -21,7 +21,15 @@
       "id": "05af4053314244488f201ef305582aa5"
     }
   ],
+  "routes": [
+    {
+      "pattern": "ragetyping.com",
+      "custom_domain": true
+    }
+  ],
   "vars": {
-    "ANTHROPIC_MODEL": "claude-haiku-4-5"
+    "ANTHROPIC_MODEL": "claude-haiku-4-5",
+    "BURN_LIMIT": "12",
+    "BURN_WINDOW_MS": "60000"
   }
 }

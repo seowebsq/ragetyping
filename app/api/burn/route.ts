@@ -5,8 +5,8 @@ export const runtime = "nodejs";
 
 type Persona = "therapist" | "sarcastic";
 
-const WINDOW_MS = 60_000;
-const MAX_BURNS = 12;
+const WINDOW_MS = Number(process.env.BURN_WINDOW_MS) || 60_000;
+const MAX_BURNS = Number(process.env.BURN_LIMIT) || 12;
 
 type Bucket = { count: number; resetAt: number };
 
