@@ -25,6 +25,10 @@
     {
       "pattern": "ragetyping.com",
       "custom_domain": true
+    },
+    {
+      "pattern": "www.ragetyping.com",
+      "custom_domain": true
     }
   ],
   "vars": {
