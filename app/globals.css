@@ -16,7 +16,6 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: var(--bg);
   color: var(--text);
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
@@ -251,6 +250,165 @@ body {
 .foot {
   margin-top: auto;
   text-align: center;
-  color: #4d4d55;
+  color: rgba(244, 241, 236, 0.42);
   font-size: 12px;
+}
+
+/* ---------- rage escalation ---------- */
+
+body {
+  background-color: var(--bg);
+  background-image: radial-gradient(125% 70% at 50% 120%, #18100c, transparent 58%);
+  background-attachment: fixed;
+}
+
+.stage {
+  --heat: 0;
+  position: relative;
+}
+
+/* Heat glow lives on its own layer so only opacity animates. */
+.embers {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: var(--heat);
+  transition: opacity 220ms ease-out;
+  background:
+    radial-gradient(130% 90% at 50% 96%, rgba(255, 55, 15, 0.58), transparent 74%),
+    radial-gradient(80% 55% at 50% 2%, rgba(255, 140, 60, 0.22), transparent 74%);
+}
+
+.stage[data-rage="5"] .embers {
+  box-shadow: inset 0 0 200px 30px rgba(255, 31, 75, 0.4);
+}
+
+.logo {
+  font-size: clamp(44px, 10vw, 70px);
+  letter-spacing: -3px;
+  text-transform: uppercase;
+}
+
+.meter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--edge);
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.segs {
+  display: flex;
+  flex: 1;
+  gap: 4px;
+}
+
+.seg {
+  flex: 1;
+  height: 7px;
+  border-radius: 2px;
+  background: #202027;
+  transition: background 140ms ease, box-shadow 140ms ease;
+}
+
+.seg.lit:nth-child(1) { background: #4bd07f; }
+.seg.lit:nth-child(2) { background: #b7d34a; }
+.seg.lit:nth-child(3) { background: #ffb020; }
+.seg.lit:nth-child(4) { background: #ff7a2c; }
+.seg.lit:nth-child(5) { background: #ff4713; box-shadow: 0 0 10px rgba(255, 71, 19, 0.7); }
+.seg.lit:nth-child(6) { background: #ff1f4b; box-shadow: 0 0 16px rgba(255, 31, 75, 0.9); }
+
+.meter-name {
+  min-width: 86px;
+  text-align: right;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  transition: color 140ms ease;
+}
+
+.stage[data-rage="3"] .meter-name { color: #ff7a2c; }
+.stage[data-rage="4"] .meter-name { color: #ff4713; }
+.stage[data-rage="5"] .meter-name {
+  color: #ff1f4b;
+  text-shadow: 0 0 12px rgba(255, 31, 75, 0.8);
+}
+
+.editor {
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.stage[data-rage="2"] .editor {
+  border-color: #7a3a1e;
+  box-shadow: 0 0 24px rgba(255, 90, 44, 0.12);
+}
+
+.stage[data-rage="3"] .editor {
+  border-color: #b3491f;
+  box-shadow: 0 0 32px rgba(255, 90, 44, 0.2);
+}
+
+.stage[data-rage="4"] .editor {
+  border-color: var(--ember);
+  box-shadow: 0 0 46px rgba(255, 71, 19, 0.3);
+  animation: shake-lo 0.26s linear infinite;
+}
+
+.stage[data-rage="5"] .editor {
+  border-color: #ff1f4b;
+  box-shadow: 0 0 60px rgba(255, 31, 75, 0.42);
+  animation: shake-hi 0.12s linear infinite;
+}
+
+.stage[data-rage="5"] .logo {
+  animation: shake-lo 0.16s linear infinite;
+}
+
+.rage {
+  caret-color: var(--ember);
+  transition: color 200ms ease;
+}
+
+.stage[data-rage="4"] .rage { color: #ffd9cc; }
+
+.stage[data-rage="5"] .rage {
+  color: #fff;
+  text-shadow: 0 0 14px rgba(255, 31, 75, 0.55);
+}
+
+.stage[data-rage="4"] .burn,
+.stage[data-rage="5"] .burn {
+  animation: burn-pulse 0.8s ease-in-out infinite;
+}
+
+@keyframes shake-lo {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-1.5px, 1px); }
+  50% { transform: translate(1.5px, -1px); }
+  75% { transform: translate(-1px, -1.5px); }
+}
+
+@keyframes shake-hi {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  20% { transform: translate(-3px, 2px) rotate(-0.25deg); }
+  40% { transform: translate(3px, -2px) rotate(0.25deg); }
+  60% { transform: translate(-2px, -3px) rotate(-0.15deg); }
+  80% { transform: translate(2px, 3px) rotate(0.15deg); }
+}
+
+@keyframes burn-pulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(255, 71, 19, 0); }
+  50% { box-shadow: 0 0 26px rgba(255, 71, 19, 0.65); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .editor,
+  .logo,
+  .burn {
+    animation: none !important;
+  }
 }
