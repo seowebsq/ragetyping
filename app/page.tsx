@@ -12,6 +12,7 @@ const SELF_DESTRUCT_MS = 9000;
 // Keystrokes-per-second thresholds per rage level, ported from RageType (MIT):
 // https://github.com/MateiCysec/ragetype
 const RAGE_KPS = [0, 4, 7, 11, 16, 22];
+const RAGE_NAMES = ["calm", "annoyed", "heated", "furious", "unhinged", "MELTDOWN"];
 
 export default function Home() {
   const [text, setText] = useState("");
@@ -22,12 +23,14 @@ export default function Home() {
   const [soundOn, setSoundOn] = useState(true);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [rage, setRage] = useState(0);
 
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const destructTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const burningRef = useRef(false);
   const textRef = useRef("");
   const keyTimes = useRef<number[]>([]);
+  const rageTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const audioCtx = useRef<AudioContext | null>(null);
 
   const ensureCtx = useCallback((): AudioContext | null => {
@@ -40,31 +43,53 @@ export default function Home() {
     return audioCtx.current;
   }, []);
 
-  const playTick = useCallback(() => {
-    if (!soundOn) return;
-    const ctx = ensureCtx();
-    if (!ctx) return;
+  // Rage decays on its own, so the meter falls back to calm when the typing stops.
+  const sampleRage = useCallback(() => {
+    const cutoff = Date.now() - 1000;
+    keyTimes.current = keyTimes.current.filter((t) => t > cutoff);
+    const level = RAGE_KPS.findLastIndex((t) => keyTimes.current.length >= t);
+    setRage(level);
+    return level;
+  }, []);
 
-    // ponytail: rage level = keystrokes in the last second, bucketed on RAGE_KPS.
-    const stamp = Date.now();
-    keyTimes.current = keyTimes.current.filter((t) => stamp - t < 1000).concat(stamp);
-    const kps = keyTimes.current.length;
-    const heat = RAGE_KPS.findLastIndex((t) => kps >= t) / (RAGE_KPS.length - 1);
+  const bumpRage = useCallback(() => {
+    keyTimes.current.push(Date.now());
+    const level = sampleRage();
+    if (!rageTimer.current) {
+      rageTimer.current = setInterval(() => {
+        if (sampleRage() === 0 && rageTimer.current) {
+          clearInterval(rageTimer.current);
+          rageTimer.current = null;
+        }
+      }, 120);
+    }
+    return level;
+  }, [sampleRage]);
 
-    const now = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    const peak = 0.035 + heat * 0.075;
-    const decay = 0.06 / (1 + heat);
-    osc.type = "triangle";
-    osc.frequency.setValueAtTime((170 + Math.random() * 140) * (1 + heat), now);
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(peak, now + 0.004);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + decay);
-    osc.connect(gain).connect(ctx.destination);
-    osc.start(now);
-    osc.stop(now + decay + 0.01);
-  }, [soundOn, ensureCtx]);
+  const playTick = useCallback(
+    (level: number) => {
+      if (!soundOn) return;
+      const ctx = ensureCtx();
+      if (!ctx) return;
+
+      const heat = level / (RAGE_KPS.length - 1);
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const peak = 0.035 + heat * 0.075;
+      const decay = 0.06 / (1 + heat);
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime((170 + Math.random() * 140) * (1 + heat), now);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(peak, now + 0.004);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + decay);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + decay + 0.01);
+    },
+    [soundOn, ensureCtx]
+  );
+
 
   const playBurn = useCallback(() => {
     if (!soundOn) return;
@@ -92,6 +117,8 @@ export default function Home() {
   const clearTimers = useCallback(() => {
     if (idleTimer.current) clearTimeout(idleTimer.current);
     if (destructTimer.current) clearTimeout(destructTimer.current);
+    if (rageTimer.current) clearInterval(rageTimer.current);
+    rageTimer.current = null;
     idleTimer.current = null;
     destructTimer.current = null;
   }, []);
@@ -155,7 +182,7 @@ export default function Home() {
     setLine(null);
     setShareUrl(null);
     if (destructTimer.current) clearTimeout(destructTimer.current);
-    playTick();
+    playTick(bumpRage());
     if (value.trim()) armIdle();
     else if (idleTimer.current) clearTimeout(idleTimer.current);
   };
@@ -179,8 +206,14 @@ export default function Home() {
   useEffect(() => () => clearTimers(), [clearTimers]);
 
   return (
-    <main className="stage">
+    <main
+      className="stage"
+      data-rage={rage}
+      style={{ "--heat": rage / (RAGE_KPS.length - 1) } as React.CSSProperties}
+    >
+      <div className="embers" aria-hidden="true" />
       <header className="head">
+
         <h1 className="logo">
           RAGE<span>TYPING</span>
         </h1>
@@ -205,7 +238,24 @@ export default function Home() {
       </div>
 
       <div className="editor">
+        <div
+          className="meter"
+          role="progressbar"
+          aria-label="Rage level"
+          aria-valuemin={0}
+          aria-valuemax={RAGE_NAMES.length - 1}
+          aria-valuenow={rage}
+          aria-valuetext={RAGE_NAMES[rage]}
+        >
+          <div className="segs">
+            {RAGE_NAMES.map((name, i) => (
+              <span key={name} className={i <= rage ? "seg lit" : "seg"} />
+            ))}
+          </div>
+          <span className="meter-name">{RAGE_NAMES[rage]}</span>
+        </div>
         <textarea
+
           className="rage"
           placeholder="Say what you really feel. The second you pause, it's gone…"
           value={text}
