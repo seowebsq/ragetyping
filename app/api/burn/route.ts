@@ -5,8 +5,13 @@ export const runtime = "nodejs";
 
 type Persona = "therapist" | "sarcastic";
 
-const WINDOW_MS = Number(process.env.BURN_WINDOW_MS) || 60_000;
-const MAX_BURNS = Number(process.env.BURN_LIMIT) || 12;
+// ponytail: Workers only populates process.env per-request, so read limits at call time.
+const limits = () => ({
+  windowMs: Number(process.env.BURN_WINDOW_MS) || 60_000,
+  maxBurns: Number(process.env.BURN_LIMIT) || 12,
+});
+
+const MAX_TEXT = 2000;
 
 type Bucket = { count: number; resetAt: number };
 
@@ -15,18 +20,20 @@ const memBuckets: { store: Map<string, Bucket> } =
   ((globalThis as any).__rageRateBuckets = { store: new Map() });
 
 function memLimited(ip: string): boolean {
+  const { windowMs, maxBurns } = limits();
   const now = Date.now();
   const bucket = memBuckets.store.get(ip);
   if (!bucket || now > bucket.resetAt) {
-    memBuckets.store.set(ip, { count: 1, resetAt: now + WINDOW_MS });
+    memBuckets.store.set(ip, { count: 1, resetAt: now + windowMs });
     return false;
   }
-  if (bucket.count >= MAX_BURNS) return true;
+  if (bucket.count >= maxBurns) return true;
   bucket.count += 1;
   return false;
 }
 
 async function kvLimited(kv: any, ip: string): Promise<boolean> {
+  const { windowMs, maxBurns } = limits();
   const key = `rate:${ip}`;
   const now = Date.now();
   let bucket: Bucket | null = null;
@@ -39,12 +46,12 @@ async function kvLimited(kv: any, ip: string): Promise<boolean> {
   if (!bucket || now > bucket.resetAt) {
     await kv.put(
       key,
-      JSON.stringify({ count: 1, resetAt: now + WINDOW_MS }),
-      { expirationTtl: Math.ceil(WINDOW_MS / 1000) + 5 }
+      JSON.stringify({ count: 1, resetAt: now + windowMs }),
+      { expirationTtl: Math.ceil(windowMs / 1000) + 5 }
     );
     return false;
   }
-  if (bucket.count >= MAX_BURNS) return true;
+  if (bucket.count >= maxBurns) return true;
   bucket.count += 1;
   await kv.put(key, JSON.stringify(bucket), {
     expirationTtl: Math.max(60, Math.ceil((bucket.resetAt - now) / 1000) + 5),
@@ -106,7 +113,9 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const text = typeof (body as any)?.text === "string" ? (body as any).text : "";
+  const text = (
+    typeof (body as any)?.text === "string" ? (body as any).text : ""
+  ).slice(0, MAX_TEXT);
   const persona = isPersona((body as any)?.persona) ? (body as any).persona : "sarcastic";
 
   const client = new Anthropic({
@@ -133,7 +142,7 @@ export async function POST(request: Request) {
       .join("")
       .trim();
 
-    return Response.json({ line: content });
+    return Response.json({ line: content || "Nothing left to say. It's gone." });
   } catch (err: any) {
     return Response.json(
       { error: err?.message || "Failed to generate burn response." },

@@ -22,6 +22,7 @@ export default function Home() {
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const destructTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const burningRef = useRef(false);
+  const textRef = useRef("");
   const audioCtx = useRef<AudioContext | null>(null);
 
   const ensureCtx = useCallback((): AudioContext | null => {
@@ -107,6 +108,8 @@ export default function Home() {
           setCopied(false);
         }
         setText("");
+        textRef.current = "";
+        setStatus("empty");
         destructTimer.current = setTimeout(() => {
           setLine(null);
           setShareUrl(null);
@@ -125,16 +128,15 @@ export default function Home() {
   const armIdle = useCallback(() => {
     if (idleTimer.current) clearTimeout(idleTimer.current);
     idleTimer.current = setTimeout(() => {
-      setText((current) => {
-        if (current.trim()) burn(current);
-        return current;
-      });
+      if (textRef.current.trim()) burn(textRef.current);
     }, IDLE_BURN_MS);
   }, [burn]);
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
     setText(value);
+    textRef.current = value;
+    setError(null);
     setStatus(value.trim() ? "composing" : "empty");
     setLine(null);
     setShareUrl(null);
