@@ -12,17 +12,30 @@ const HEAT = ["#4bd07f", "#b7d34a", "#ffb020", "#ff7a2c", "#ff4713", "#ff1f4b"];
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
 
+  // No line at all means this is the site card rather than someone's receipt.
+  const raw = params.get("l");
+  const brand = !raw;
+
   let line = "";
-  try {
-    const raw = params.get("l");
-    if (raw && raw.length <= 2000) line = b64decode(raw).slice(0, 240);
-  } catch {
-    line = "";
+  if (raw) {
+    try {
+      if (raw.length <= 2000) line = b64decode(raw).slice(0, 240);
+    } catch {
+      line = "";
+    }
   }
 
   const persona = getPersona(params.get("p"));
-  const rage = Math.min(5, Math.max(0, Number(params.get("r")) || 0));
+  const rage = brand ? 5 : Math.min(5, Math.max(0, Number(params.get("r")) || 0));
   const accent = HEAT[rage];
+
+  const headline = brand
+    ? "Type your anger. Stop. One brutally honest sentence is all that is left."
+    : line || "This receipt has turned to ash.";
+
+  const caption = brand
+    ? "NOTHING YOU TYPE IS EVER STORED"
+    : `${RAGE_NAMES[rage].toUpperCase()} · ${persona.tag.toUpperCase()}`;
 
   return new ImageResponse(
     (
@@ -48,12 +61,12 @@ export async function GET(request: Request) {
         <div
           style={{
             display: "flex",
-            fontSize: line.length > 120 ? 42 : 54,
+            fontSize: headline.length > 120 ? 42 : 54,
             lineHeight: 1.25,
             fontWeight: 600,
           }}
         >
-          {line || "This receipt has turned to ash."}
+          {headline}
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -79,7 +92,7 @@ export async function GET(request: Request) {
               color: accent,
             }}
           >
-            {`${RAGE_NAMES[rage].toUpperCase()} — ${persona.tag.toUpperCase()}`}
+            {caption}
           </div>
         </div>
       </div>

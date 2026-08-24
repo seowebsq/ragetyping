@@ -40,8 +40,8 @@ export async function generateMetadata({
   const params = await searchParams;
   const receipt = decode(params);
   const title = receipt
-    ? `${RAGE_NAMES[receipt.rage].toUpperCase()} — a burn receipt`
-    : "Burn Receipt — Rage Typing";
+    ? `${RAGE_NAMES[receipt.rage].toUpperCase()}: a burn receipt`
+    : "Burn Receipt | Rage Typing";
 
   return {
     title,

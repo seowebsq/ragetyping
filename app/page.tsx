@@ -400,7 +400,7 @@ export default function Home() {
               {status === "burning"
                 ? "burning…"
                 : status === "composing"
-                  ? "idle — burning in a moment"
+                  ? "idle, burning in a moment"
                   : "start typing"}
             </span>
           </div>
@@ -442,7 +442,7 @@ export default function Home() {
                   {framing ? "Framing…" : "Frame this burn"}
                 </button>
               )}
-              {framedUrl && <span className="framed">Framed — this one is permanent.</span>}
+              {framedUrl && <span className="framed">Framed. This one is permanent.</span>}
             </div>
             {!framedUrl && <span className="receipt-fade">self-destructing…</span>}
           </>
@@ -465,7 +465,7 @@ export default function Home() {
           {!pass && PASS_URL && <a href={PASS_URL}>Rage Pass</a>}
           <a
             className="made-by"
-            href="https://cyberdinessystems.be"
+            href="https://www.cyberdinesystems.be/"
             rel="noreferrer noopener"
             target="_blank"
           >

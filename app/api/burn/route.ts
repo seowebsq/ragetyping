@@ -78,7 +78,7 @@ export function todayKey(now = new Date()): string {
 }
 
 // ponytail: KV has no atomic increment, so a burst of simultaneous burns can lose a
-// tick. It is a vanity counter — swap in a Durable Object if it ever has to be exact.
+// tick. It is a vanity counter, so swap in a Durable Object if it ever has to be exact.
 async function countMeltdown(kv: any): Promise<number | null> {
   if (!kv) return null;
   const key = todayKey();

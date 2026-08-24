@@ -13,9 +13,9 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const framed = await loadFrame((await params).id);
-  if (!framed) return { title: "Burn Receipt — Rage Typing", robots: { index: false } };
+  if (!framed) return { title: "Burn Receipt | Rage Typing", robots: { index: false } };
 
-  const title = `${RAGE_NAMES[framed.rage].toUpperCase()} — a framed burn`;
+  const title = `${RAGE_NAMES[framed.rage].toUpperCase()}: a framed burn`;
   const og = `/api/og?l=${encodeURIComponent(b64encode(framed.line))}&p=${framed.persona}&r=${framed.rage}`;
 
   return {

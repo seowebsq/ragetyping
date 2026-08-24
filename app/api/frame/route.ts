@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 
 /**
  * Framing is the one place Rage Typing keeps anything, so it is deliberately
- * opt-in, pass-only, and stores just the generated line — never what was typed.
+ * opt-in, pass-only, and stores just the generated line, never what was typed.
  */
 export async function POST(request: Request) {
   if (!(await hasPass(request, serverEnv("RAGE_PASS_SECRET")))) {

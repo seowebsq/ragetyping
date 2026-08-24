@@ -30,7 +30,7 @@ export const PERSONAS: Persona[] = [
     tag: "therapist",
     premium: false,
     direction:
-      "calm, empathetic, insightful — help them notice the real feeling beneath the anger without coddling",
+      "calm, empathetic, insightful, helping them notice the real feeling beneath the anger without coddling",
   },
   {
     id: "sergeant",
@@ -46,7 +46,7 @@ export const PERSONAS: Persona[] = [
     tag: "parent",
     premium: true,
     direction:
-      "a quietly disappointed parent — no shouting, just the devastating calm of someone who expected better",
+      "a quietly disappointed parent, with no shouting, just the devastating calm of someone who expected better",
   },
   {
     id: "hr",

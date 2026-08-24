@@ -1,4 +1,4 @@
-// ponytail: date-indexed instead of KV + cron — the same prompt for everyone on a
+// ponytail: date-indexed instead of KV plus cron. The same prompt for everyone on a
 // given day, with no storage and no scheduled worker. Swap to KV if it ever needs
 // to be edited without a deploy.
 const PROMPTS = [
