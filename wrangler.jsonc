@@ -34,6 +34,7 @@
   "vars": {
     "ANTHROPIC_MODEL": "claude-haiku-4-5",
     "BURN_LIMIT": "12",
+    "BURN_LIMIT_PASS": "60",
     "BURN_WINDOW_MS": "60000"
   }
 }
