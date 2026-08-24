@@ -15,7 +15,7 @@ const PASS_URL = process.env.NEXT_PUBLIC_RAGE_PASS_URL || "";
 const TIP_URL = process.env.NEXT_PUBLIC_TIP_URL || "";
 
 const PASS_NOTES: Record<string, string> = {
-  ok: "Rage Pass active. Every persona is yours.",
+  ok: "Rage Pass active. Higher burn limit, and you can frame any burn you like.",
   unpaid: "That checkout never completed, so no pass was issued.",
   invalid: "That activation link was malformed.",
   unconfigured: "Rage Pass is not configured on this server yet.",
@@ -257,17 +257,6 @@ export default function Home() {
     burn(text);
   };
 
-  const pickPersona = (id: PersonaId, premium: boolean) => {
-    if (premium && !pass) {
-      setNotice(
-        PASS_URL ? "That one is behind the Rage Pass." : "Rage Pass personas are not on sale yet."
-      );
-      return;
-    }
-    setNotice(null);
-    setPersona(id);
-  };
-
   const copyLink = async () => {
     const url = framedUrl || shareUrl;
     if (!url) return;
@@ -330,25 +319,16 @@ export default function Home() {
       </header>
 
       <div className="persona" role="group" aria-label="Burn persona">
-        {PERSONAS.map((p) => {
-          const locked = p.premium && !pass;
-          return (
-            <button
-              key={p.id}
-              className={`pill${persona === p.id ? " active" : ""}${locked ? " locked" : ""}`}
-              onClick={() => pickPersona(p.id, p.premium)}
-              aria-pressed={persona === p.id}
-            >
-              {p.label}
-              {locked && (
-                <span className="lock" aria-label="Rage Pass only">
-                  {" "}
-                  &middot; pass
-                </span>
-              )}
-            </button>
-          );
-        })}
+        {PERSONAS.map((p) => (
+          <button
+            key={p.id}
+            className={`pill${persona === p.id ? " active" : ""}`}
+            onClick={() => setPersona(p.id)}
+            aria-pressed={persona === p.id}
+          >
+            {p.label}
+          </button>
+        ))}
       </div>
 
       {notice && (

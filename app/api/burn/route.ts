@@ -141,13 +141,6 @@ export async function POST(request: Request) {
   const persona = getPersona((body as any)?.persona);
   const rage = Math.min(5, Math.max(0, Number((body as any)?.rage) || 0));
 
-  if (persona.premium && !pass) {
-    return Response.json(
-      { error: `${persona.label} is a Rage Pass persona.`, needsPass: true },
-      { status: 402 }
-    );
-  }
-
   const client = new Anthropic({
     apiKey: serverEnv("ANTHROPIC_API_KEY"),
     fetch: (url, init) => fetch(url as any, init as any),
@@ -199,6 +192,6 @@ export async function GET(request: Request) {
   return Response.json({
     meltdowns,
     pass: await hasPass(request, serverEnv("RAGE_PASS_SECRET")),
-    personas: PERSONAS.map(({ id, label, premium }) => ({ id, label, premium })),
+    personas: PERSONAS.map(({ id, label }) => ({ id, label })),
   });
 }
