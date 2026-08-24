@@ -1,14 +1,17 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { PERSONAS, getPersona } from "@/lib/personas";
+import { hasPass } from "@/lib/pass";
+import { serverEnv } from "@/lib/env";
 
 export const runtime = "nodejs";
 
-type Persona = "therapist" | "sarcastic";
-
-// ponytail: Workers only populates process.env per-request, so read limits at call time.
-const limits = () => ({
-  windowMs: Number(process.env.BURN_WINDOW_MS) || 60_000,
-  maxBurns: Number(process.env.BURN_LIMIT) || 12,
+// ponytail: env is only readable per-request on Workers, so read the limits at call time.
+const limits = (pass: boolean) => ({
+  windowMs: Number(serverEnv("BURN_WINDOW_MS")) || 60_000,
+  maxBurns: pass
+    ? Number(serverEnv("BURN_LIMIT_PASS")) || 60
+    : Number(serverEnv("BURN_LIMIT")) || 12,
 });
 
 const MAX_TEXT = 2000;
@@ -19,8 +22,8 @@ const memBuckets: { store: Map<string, Bucket> } =
   (globalThis as any).__rageRateBuckets ??
   ((globalThis as any).__rageRateBuckets = { store: new Map() });
 
-function memLimited(ip: string): boolean {
-  const { windowMs, maxBurns } = limits();
+function memLimited(ip: string, pass: boolean): boolean {
+  const { windowMs, maxBurns } = limits(pass);
   const now = Date.now();
   const bucket = memBuckets.store.get(ip);
   if (!bucket || now > bucket.resetAt) {
@@ -32,8 +35,8 @@ function memLimited(ip: string): boolean {
   return false;
 }
 
-async function kvLimited(kv: any, ip: string): Promise<boolean> {
-  const { windowMs, maxBurns } = limits();
+async function kvLimited(kv: any, ip: string, pass: boolean): Promise<boolean> {
+  const { windowMs, maxBurns } = limits(pass);
   const key = `rate:${ip}`;
   const now = Date.now();
   let bucket: Bucket | null = null;
@@ -44,11 +47,9 @@ async function kvLimited(kv: any, ip: string): Promise<boolean> {
     /* ignore read errors, fall through to allow */
   }
   if (!bucket || now > bucket.resetAt) {
-    await kv.put(
-      key,
-      JSON.stringify({ count: 1, resetAt: now + windowMs }),
-      { expirationTtl: Math.ceil(windowMs / 1000) + 5 }
-    );
+    await kv.put(key, JSON.stringify({ count: 1, resetAt: now + windowMs }), {
+      expirationTtl: Math.ceil(windowMs / 1000) + 5,
+    });
     return false;
   }
   if (bucket.count >= maxBurns) return true;
@@ -59,47 +60,68 @@ async function kvLimited(kv: any, ip: string): Promise<boolean> {
   return false;
 }
 
-async function rateLimited(ip: string): Promise<boolean> {
-  let ctx: any = null;
+function cfEnv(): any {
   try {
-    ctx = getCloudflareContext();
+    return getCloudflareContext()?.env ?? null;
   } catch {
-    /* not on Cloudflare */
+    return null;
   }
-  const kv = ctx?.env?.RAGE_KV;
-  if (kv) return kvLimited(kv, ip);
-  return memLimited(ip);
+}
+
+async function rateLimited(kv: any, ip: string, pass: boolean): Promise<boolean> {
+  if (kv) return kvLimited(kv, ip, pass);
+  return memLimited(ip, pass);
+}
+
+export function todayKey(now = new Date()): string {
+  return `meltdowns:${now.toISOString().slice(0, 10)}`;
+}
+
+// ponytail: KV has no atomic increment, so a burst of simultaneous burns can lose a
+// tick. It is a vanity counter, so swap in a Durable Object if it ever has to be exact.
+async function countMeltdown(kv: any): Promise<number | null> {
+  if (!kv) return null;
+  const key = todayKey();
+  try {
+    const current = Number(await kv.get(key)) || 0;
+    const next = current + 1;
+    await kv.put(key, String(next), { expirationTtl: 60 * 60 * 24 * 8 });
+    return next;
+  } catch {
+    return null;
+  }
 }
 
 const SYSTEM = `You are the "burn" engine for Rage Typing, an app where people vent angry, heated, or toxic messages that self-destruct.
 Given a user's message, reply with EXACTLY ONE brutally honest sentence.
-The sentence's tone is set by the persona:
-- therapist: calm, empathetic, insightful. Help them notice the real feeling beneath the anger without coddling.
-- sarcastic: a hilarious, mocking mirror of how absurd, petty, or over-the-top they sound.
 Hard rules:
 - Output only the single sentence. No preamble, no markdown, no quotation marks, no bullets.
 - Under 30 words.
-- If the message is empty, harmless, or not actually angry, still return one fitting sentence (gentle for therapist, witty for sarcastic).`;
-
-function isPersona(value: unknown): value is Persona {
-  return value === "therapist" || value === "sarcastic";
-}
+- If the message is empty, harmless, or not actually angry, still return one fitting sentence in the same voice.`;
 
 export async function POST(request: Request) {
+  const env = cfEnv();
+  const kv = env?.RAGE_KV;
+  const pass = await hasPass(request, serverEnv("RAGE_PASS_SECRET"));
+
   const ip =
     request.headers.get("cf-connecting-ip") ||
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     request.headers.get("x-real-ip") ||
     "local";
 
-  if (await rateLimited(ip)) {
+  if (await rateLimited(kv, ip, pass)) {
     return Response.json(
-      { error: "Too many burns. Take a breath and try again in a minute." },
+      {
+        error: pass
+          ? "Even the pass has limits. Take a breath and try again in a minute."
+          : "Too many burns. Take a breath, or grab a Rage Pass for a higher limit.",
+      },
       { status: 429 }
     );
   }
 
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!serverEnv("ANTHROPIC_API_KEY")) {
     return Response.json(
       { error: "Server is not configured with ANTHROPIC_API_KEY." },
       { status: 500 }
@@ -116,22 +138,30 @@ export async function POST(request: Request) {
   const text = (
     typeof (body as any)?.text === "string" ? (body as any).text : ""
   ).slice(0, MAX_TEXT);
-  const persona = isPersona((body as any)?.persona) ? (body as any).persona : "sarcastic";
+  const persona = getPersona((body as any)?.persona);
+  const rage = Math.min(5, Math.max(0, Number((body as any)?.rage) || 0));
+
+  if (persona.premium && !pass) {
+    return Response.json(
+      { error: `${persona.label} is a Rage Pass persona.`, needsPass: true },
+      { status: 402 }
+    );
+  }
 
   const client = new Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY,
+    apiKey: serverEnv("ANTHROPIC_API_KEY"),
     fetch: (url, init) => fetch(url as any, init as any),
   });
 
   try {
     const message = await client.messages.create({
-      model: process.env.ANTHROPIC_MODEL || "claude-haiku-4-5",
+      model: serverEnv("ANTHROPIC_MODEL") || "claude-haiku-4-5",
       max_tokens: 120,
-      system: SYSTEM,
+      system: `${SYSTEM}\n\nThe voice for this reply: ${persona.direction}.`,
       messages: [
         {
           role: "user",
-          content: `Persona: ${persona}\n\nMessage:\n${text || "(nothing typed)"}`,
+          content: `Message:\n${text || "(nothing typed)"}`,
         },
       ],
     });
@@ -142,11 +172,33 @@ export async function POST(request: Request) {
       .join("")
       .trim();
 
-    return Response.json({ line: content || "Nothing left to say. It's gone." });
+    const meltdowns = rage >= 5 ? await countMeltdown(kv) : null;
+
+    return Response.json({
+      line: content || "Nothing left to say. It's gone.",
+      meltdowns,
+      pass,
+    });
   } catch (err: any) {
     return Response.json(
       { error: err?.message || "Failed to generate burn response." },
       { status: 502 }
     );
   }
+}
+
+export async function GET(request: Request) {
+  const env = cfEnv();
+  const kv = env?.RAGE_KV;
+  let meltdowns = 0;
+  try {
+    if (kv) meltdowns = Number(await kv.get(todayKey())) || 0;
+  } catch {
+    /* counter is decorative, never fail the page for it */
+  }
+  return Response.json({
+    meltdowns,
+    pass: await hasPass(request, serverEnv("RAGE_PASS_SECRET")),
+    personas: PERSONAS.map(({ id, label, premium }) => ({ id, label, premium })),
+  });
 }
