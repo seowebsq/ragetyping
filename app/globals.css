@@ -559,3 +559,11 @@ body {
 .receipt .copy {
   align-self: flex-start;
 }
+
+.foot-links a.made-by {
+  color: var(--muted);
+}
+
+.foot-links a.made-by:hover {
+  color: var(--ember-soft);
+}

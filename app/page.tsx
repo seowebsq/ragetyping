@@ -463,6 +463,14 @@ export default function Home() {
             </a>
           )}
           {!pass && PASS_URL && <a href={PASS_URL}>Rage Pass</a>}
+          <a
+            className="made-by"
+            href="https://cyberdinessystems.be"
+            rel="noreferrer noopener"
+            target="_blank"
+          >
+            Made by Cyberdine Systems
+          </a>
         </span>
       </footer>
     </main>
